@@ -17,11 +17,8 @@
       --good:#38D39F;
       --warn:#FFB020;
       --bad:#FF5C7A;
-      --brand:#7C5CFF;
-      --brand2:#34D6FF;
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --radius:18px;
-      --radius2:14px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
@@ -72,7 +69,6 @@
       padding:6px;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
     }
-    /* Subtle highlight behind image (still visible if logo has transparency) */
     .logo::after{
       content:"";
       position:absolute; inset:-30%;
@@ -343,10 +339,10 @@
       <div class="brand">
         <div class="logo" aria-hidden="true">
           <!-- Place logo.png next to this HTML file in your GitHub repo -->
-          <img class="logoImg" src="logo.png" alt="3Dmetafix logo" onerror="this.style.display='none';" />
+          <img class="logoImg" src="logo.png" alt="3DmetaFix logo" onerror="this.style.display='none';" />
         </div>
         <div>
-          <h1>3Dmetafix</h1>
+          <h1>3DmetaFix</h1>
           <p class="sub">
             Open an MP4/MOV to check if it contains Google “GSpherical” VR/360 metadata, and (if needed) add that metadata without re-encoding.
           </p>
@@ -413,7 +409,7 @@
             <div class="row">
               <button class="btn" id="presetVr180Btn" type="button">Preset: VR180</button>
               <button class="btn" id="preset360Btn" type="button">Preset: 360</button>
-              <span class="mini">Tip: these presets only set fields in the form; injection happens when you click “Inject & Download”.</span>
+              <span class="mini">Tip: presets only set fields; injection happens when you click “Inject & Download”.</span>
             </div>
 
             <div class="sp"></div>
@@ -527,7 +523,7 @@
             <div class="code" id="injectOut">Choose a file, set fields, then click “Inject & Download”.</div>
 
             <div class="mini" style="margin-top:10px">
-              Note: In Chromium browsers, saving typically uses a temporary “.crswap” file while writing. When saving completes normally, it is renamed to your chosen “.mp4/.mov”.
+              Note: In Chromium browsers, saving may use a temporary “.crswap” file while writing. When saving completes, it is renamed to your chosen “.mp4/.mov”.
             </div>
           </div>
         </div>
@@ -718,7 +714,7 @@
         StereoMode: <span style="font-family:var(--mono)">${escapeHtml(stereo)}</span><br/>
         Crop fields: ${escapeHtml(crop)}<br/><br/>
         <b>Extra (optional boxes)</b><br/>st3d boxes: ${st3dCount} • sv3d boxes: ${sv3dCount}<br/>
-        <span class="mini">3Dmetafix injects GSpherical only.</span>`;
+        <span class="mini">3DmetaFix injects GSpherical only.</span>`;
     }
 
     return `
@@ -1163,7 +1159,7 @@
     parts.push(`xmlns:GSpherical="http://ns.google.com/videos/1.0/spherical/">`);
     parts.push(`<GSpherical:Spherical>true</GSpherical:Spherical>`);
     parts.push(`<GSpherical:Stitched>true</GSpherical:Stitched>`);
-    parts.push(`<GSpherical:StitchingSoftware>3Dmetafix</GSpherical:StitchingSoftware>`);
+    parts.push(`<GSpherical:StitchingSoftware>3DmetaFix</GSpherical:StitchingSoftware>`);
     parts.push(`<GSpherical:ProjectionType>${projectionType}</GSpherical:ProjectionType>`);
 
     if (Number.isFinite(initialViewHeadingDegrees)){
@@ -1458,30 +1454,21 @@
     inspectOut.textContent = "Copied report JSON to clipboard.\n\n" + json;
   });
 
-  // --- Save helpers (progress + save-as when possible) ---
-  async function writeBlobToWritable(blob, writable, onProgress){
+  // --- Save helpers (FIXED: no locked stream close) ---
+  async function writeBlobToFileSystemWritable(blob, writable, onProgress){
     const total = blob.size;
     let written = 0;
 
     const reader = blob.stream().getReader();
-    const writer = writable.getWriter ? writable.getWriter() : null;
-
-    const writeChunk = async (chunk) => {
-      if (writer) return writer.write(chunk);
-      return writable.write(chunk);
-    };
-
-    const closeWriter = async () => {
-      if (writer) await writer.close();
-    };
-
     let lastUi = 0;
+
     try{
       while(true){
         const { value, done } = await reader.read();
         if (done) break;
+
         if (value){
-          await writeChunk(value);
+          await writable.write(value);
           written += value.byteLength;
 
           const now = performance.now();
@@ -1492,9 +1479,8 @@
         }
       }
       onProgress?.(written, total);
-      await closeWriter();
     } finally {
-      reader.releaseLock?.();
+      try { reader.releaseLock?.(); } catch(_) {}
     }
   }
 
@@ -1511,8 +1497,8 @@
 
     const writable = await handle.createWritable();
     try{
-      await writeBlobToWritable(blob, writable, onProgress);
-      await writable.close();
+      await writeBlobToFileSystemWritable(blob, writable, onProgress);
+      await writable.close(); // close once, here
       return true;
     } catch(e){
       try{ await writable.abort(); } catch(_){}
