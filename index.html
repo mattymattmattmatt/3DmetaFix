@@ -1,0 +1,1681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3DmetaFix</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root{
+      --bg0:#070A12; --bg1:#0B1022;
+      --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.12);
+      --stroke2:rgba(255,255,255,.18);
+      --text:#EAF0FF;
+      --muted:rgba(234,240,255,.70);
+      --muted2:rgba(234,240,255,.55);
+      --good:#38D39F;
+      --warn:#FFB020;
+      --bad:#FF5C7A;
+      --brand:#7C5CFF;
+      --brand2:#34D6FF;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --radius:18px;
+      --radius2:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg0:#f6f7fb; --bg1:#eef1fb;
+        --card:rgba(15,23,42,.06);
+        --stroke:rgba(15,23,42,.12);
+        --stroke2:rgba(15,23,42,.18);
+        --text:#0f172a;
+        --muted:rgba(15,23,42,.75);
+        --muted2:rgba(15,23,42,.55);
+        --shadow: 0 18px 60px rgba(15,23,42,.12);
+      }
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(124,92,255,.22), transparent 60%),
+        radial-gradient(900px 700px at 85% 20%, rgba(52,214,255,.14), transparent 55%),
+        radial-gradient(900px 700px at 50% 95%, rgba(56,211,159,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 18px 48px; }
+
+    .top{
+      display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+      flex-wrap:wrap; margin-bottom:18px;
+    }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo{
+      width:44px; height:44px; border-radius:14px;
+      background: linear-gradient(135deg, rgba(124,92,255,1), rgba(52,214,255,1));
+      box-shadow: 0 12px 30px rgba(124,92,255,.18);
+      position:relative; overflow:hidden;
+      flex: 0 0 auto;
+    }
+    .logoImg{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      padding:6px;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+    }
+    /* Subtle highlight behind image (still visible if logo has transparency) */
+    .logo::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 45%);
+      transform: rotate(14deg);
+      pointer-events:none;
+    }
+
+    h1{ font-size:18px; line-height:1.2; margin:0; letter-spacing:.2px; }
+    .sub{ margin:6px 0 0; color:var(--muted); font-size:13px; max-width:760px; line-height:1.45; }
+
+    .grid{ display:grid; grid-template-columns: 1.15fr .85fr; gap:14px; }
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    .card .hd .t{
+      font-size:13px; letter-spacing:.25px; text-transform:uppercase;
+      color:rgba(234,240,255,.85);
+    }
+    @media (prefers-color-scheme: light){
+      .card .hd .t{ color:rgba(15,23,42,.82); }
+    }
+    .card .bd{ padding:16px; }
+
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      color: rgba(234,240,255,.78);
+      padding:10px 12px;
+      border-radius: 12px;
+      font-size:13px;
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    @media (prefers-color-scheme: light){
+      .tab{ color: rgba(15,23,42,.78); }
+    }
+    .tab:hover{ background: rgba(255,255,255,.07) }
+    .tab:active{ transform: translateY(1px) }
+    .tab.active{
+      background: linear-gradient(135deg, rgba(124,92,255,.26), rgba(52,214,255,.14));
+      border-color: rgba(124,92,255,.40);
+      color: var(--text);
+    }
+
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .sp{ height:10px; }
+
+    .drop{
+      border:1px dashed var(--stroke2);
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding:16px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .drop.drag{
+      border-color: rgba(124,92,255,.55);
+      background: rgba(124,92,255,.08);
+    }
+    .drop .left{ display:flex; flex-direction:column; gap:6px; }
+    .drop .left .a{ font-size:14px; font-weight:650; letter-spacing:.2px; }
+    .drop .left .b{ font-size:12px; color:var(--muted); }
+
+    input[type=file]{ display:none; }
+
+    .btn{
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-size:13px;
+      transition: background .15s ease, border-color .15s ease, transform .06s ease;
+      display:inline-flex; align-items:center; gap:10px;
+      user-select:none;
+      text-decoration:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09) }
+    .btn:active{ transform: translateY(1px) }
+    .btn.primary{
+      border-color: rgba(124,92,255,.45);
+      background: linear-gradient(135deg, rgba(124,92,255,.40), rgba(52,214,255,.18));
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, rgba(124,92,255,.52), rgba(52,214,255,.20));
+    }
+    .btn.danger{
+      border-color: rgba(255,92,122,.45);
+      background: rgba(255,92,122,.12);
+    }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      font-size:12px;
+      color: rgba(234,240,255,.82);
+    }
+    @media (prefers-color-scheme: light){
+      .badge{ color: rgba(15,23,42,.82); }
+    }
+    .dot{ width:10px; height:10px; border-radius:99px; background: var(--muted2); }
+    .dot.good{ background: var(--good); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{  background: var(--bad); }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 190px 1fr;
+      gap:10px 12px;
+      margin:0;
+    }
+    .kv .k{ color: var(--muted); font-size:12px; }
+    .kv .v{
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(234,240,255,.92);
+      overflow-wrap:anywhere;
+    }
+    @media (prefers-color-scheme: light){
+      .kv .v{ color: rgba(15,23,42,.92); }
+    }
+    @media (max-width: 640px){
+      .kv{ grid-template-columns:1fr; }
+    }
+
+    .code{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.25);
+      border-radius: 14px;
+      padding:12px;
+      font-family: var(--mono);
+      font-size:12px;
+      line-height:1.45;
+      color: rgba(234,240,255,.90);
+      max-height: 380px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break: break-word;
+    }
+    @media (prefers-color-scheme: light){
+      .code{
+        background: rgba(255,255,255,.72);
+        color: rgba(15,23,42,.92);
+      }
+    }
+
+    .two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 640px){ .two{grid-template-columns:1fr} }
+
+    .field{
+      display:flex; flex-direction:column; gap:6px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+    }
+    .field label{
+      font-size:12px;
+      color: var(--muted);
+      letter-spacing:.15px;
+    }
+    .field select, .field input[type=number], .field input[type=text]{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      border-radius: 12px;
+      padding:10px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    @media (prefers-color-scheme: light){
+      .field select, .field input{
+        background: rgba(255,255,255,.75);
+        color: rgba(15,23,42,.92);
+      }
+    }
+    .field select:focus, .field input:focus{
+      border-color: rgba(124,92,255,.55);
+      box-shadow: 0 0 0 3px rgba(124,92,255,.14);
+    }
+
+    .muted{ color: var(--muted); font-size:12px; line-height:1.45; }
+    .mini{ font-size:12px; color: var(--muted2); }
+
+    .hint{
+      margin-top:8px;
+      padding:10px 12px;
+      border:1px solid rgba(255,176,32,.25);
+      background: rgba(255,176,32,.08);
+      border-radius: 12px;
+      font-size:12px;
+      color: rgba(234,240,255,.88);
+    }
+    @media (prefers-color-scheme: light){
+      .hint{ color: rgba(15,23,42,.92); }
+    }
+
+    .progressWrap{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+      padding:12px;
+      display:none;
+      gap:10px;
+    }
+    .progressTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      font-size:12px;
+      color: var(--muted);
+    }
+    progress{
+      width:100%;
+      height:12px;
+      border-radius: 999px;
+      overflow:hidden;
+      appearance:none;
+      -webkit-appearance:none;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    progress::-webkit-progress-bar{ background: rgba(255,255,255,.08); }
+    progress::-webkit-progress-value{
+      background: linear-gradient(135deg, rgba(124,92,255,.85), rgba(52,214,255,.70));
+      border-radius: 999px;
+    }
+    progress::-moz-progress-bar{
+      background: linear-gradient(135deg, rgba(124,92,255,.85), rgba(52,214,255,.70));
+    }
+
+    .inlineControls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .inspectActions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <!-- Place logo.png next to this HTML file in your GitHub repo -->
+          <img class="logoImg" src="logo.png" alt="3Dmetafix logo" onerror="this.style.display='none';" />
+        </div>
+        <div>
+          <h1>3Dmetafix</h1>
+          <p class="sub">
+            Open an MP4/MOV to check if it contains Google “GSpherical” VR/360 metadata, and (if needed) add that metadata without re-encoding.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: Workspace -->
+      <div class="card">
+        <div class="hd">
+          <div class="t">Workspace</div>
+          <div class="tabs">
+            <div class="tab active" id="tabInspect">Inspect</div>
+            <div class="tab" id="tabInject">Inject</div>
+          </div>
+        </div>
+
+        <div class="bd">
+          <!-- File chooser -->
+          <div class="drop" id="drop">
+            <div class="left">
+              <div class="a" id="fileLabel">Choose an MP4/MOV file</div>
+              <div class="b">Click “Open file” or drag-and-drop here.</div>
+            </div>
+            <div class="row">
+              <label class="btn primary" for="fileInput">Open file</label>
+              <input id="fileInput" type="file" accept="video/mp4,video/quicktime,.mp4,.mov" />
+              <button class="btn danger" id="clearBtn" type="button">Clear</button>
+            </div>
+          </div>
+
+          <div class="sp"></div>
+
+          <!-- INSPECT PANEL -->
+          <div id="panelInspect">
+            <div class="row" style="justify-content:space-between">
+              <div class="badge" id="inspectBadge"><span class="dot warn"></span><span>No file loaded</span></div>
+              <div class="inspectActions">
+                <button class="btn" id="inspectBtn" type="button" style="display:none" disabled>Run inspection</button>
+                <button class="btn" id="copyJsonBtn" type="button" style="display:none">Copy report JSON</button>
+              </div>
+            </div>
+
+            <div class="sp"></div>
+
+            <dl class="kv" id="inspectKv"></dl>
+
+            <div class="code" id="inspectOut">Load a file to enable inspection.</div>
+          </div>
+
+          <!-- INJECT PANEL -->
+          <div id="panelInject" style="display:none">
+            <div class="row" style="justify-content:space-between">
+              <div class="badge" id="injectBadge"><span class="dot warn"></span><span>No file loaded</span></div>
+              <div class="inlineControls">
+                <button class="btn" id="resetInjectBtn" type="button">Reset</button>
+                <button class="btn primary" id="injectBtn" type="button">Inject & Download</button>
+              </div>
+            </div>
+
+            <div class="sp"></div>
+
+            <div class="row">
+              <button class="btn" id="presetVr180Btn" type="button">Preset: VR180</button>
+              <button class="btn" id="preset360Btn" type="button">Preset: 360</button>
+              <span class="mini">Tip: these presets only set fields in the form; injection happens when you click “Inject & Download”.</span>
+            </div>
+
+            <div class="sp"></div>
+
+            <!-- Scan & Match -->
+            <div class="field">
+              <label>Scan & Match from another video (reference)</label>
+              <div class="row">
+                <label class="btn" for="refInput">Open reference file</label>
+                <input id="refInput" type="file" accept="video/mp4,video/quicktime,.mp4,.mov" />
+                <button class="btn" id="scanRefBtn" type="button">Scan reference</button>
+                <button class="btn primary" id="applyRefBtn" type="button" disabled>Match from reference</button>
+              </div>
+              <div class="mini" id="refSummary" style="margin-top:8px">No reference loaded.</div>
+            </div>
+
+            <div class="sp"></div>
+
+            <!-- Primary injection settings -->
+            <div class="two">
+              <div class="field">
+                <label>ProjectionType</label>
+                <select id="projectionType">
+                  <option value="half_equirectangular" selected>half_equirectangular (VR180)</option>
+                  <option value="equirectangular">equirectangular (360)</option>
+                  <option value="cubemap">cubemap (360)</option>
+                  <option value="__custom__">Custom…</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>StereoMode</label>
+                <select id="stereoMode">
+                  <option value="" selected>mono / none (leave tag out)</option>
+                  <option value="left-right">left-right (SBS)</option>
+                  <option value="top-bottom">top-bottom (TB)</option>
+                  <option value="__custom__">Custom…</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sp"></div>
+
+            <div class="two">
+              <div class="field" id="projectionCustomField" style="display:none">
+                <label>Custom ProjectionType value</label>
+                <input id="projectionCustom" type="text" placeholder="e.g. half_equirectangular" />
+              </div>
+              <div class="field" id="stereoCustomField" style="display:none">
+                <label>Custom StereoMode value</label>
+                <input id="stereoCustom" type="text" placeholder="e.g. left-right" />
+              </div>
+            </div>
+
+            <div class="sp"></div>
+
+            <div class="two">
+              <div class="field">
+                <label>InitialViewHeadingDegrees</label>
+                <input id="ivh" type="number" value="180" min="0" max="360" step="1" />
+              </div>
+              <div class="field">
+                <label>Crop fields (VR180 / partial pano)</label>
+                <select id="cropMode">
+                  <option value="none" selected>No crop fields</option>
+                  <option value="custom">Use crop fields</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Custom crop fields -->
+            <div class="two" id="customFields" style="display:none; margin-top:12px">
+              <div class="field">
+                <label>CroppedAreaImageWidthPixels</label>
+                <input id="cW" type="number" value="0" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label>CroppedAreaImageHeightPixels</label>
+                <input id="cH" type="number" value="0" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label>FullPanoWidthPixels</label>
+                <input id="fW" type="number" value="0" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label>FullPanoHeightPixels</label>
+                <input id="fH" type="number" value="0" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label>CroppedAreaLeftPixels</label>
+                <input id="cL" type="number" value="0" min="0" step="1" />
+              </div>
+              <div class="field">
+                <label>CroppedAreaTopPixels</label>
+                <input id="cT" type="number" value="0" min="0" step="1" />
+              </div>
+            </div>
+
+            <div class="hint" id="cropHint" style="display:none">
+              Crop fields are enabled but some values are still 0. That can cause players to ignore crop metadata. Consider scanning a reference file and using “Match from reference”.
+            </div>
+
+            <!-- Progress -->
+            <div class="progressWrap" id="progressWrap">
+              <div class="progressTop">
+                <div id="progressLabel">Preparing…</div>
+                <div class="mini" id="progressPct">0%</div>
+              </div>
+              <progress id="progressBar" value="0" max="100"></progress>
+            </div>
+
+            <div class="code" id="injectOut">Choose a file, set fields, then click “Inject & Download”.</div>
+
+            <div class="mini" style="margin-top:10px">
+              Note: In Chromium browsers, saving typically uses a temporary “.crswap” file while writing. When saving completes normally, it is renamed to your chosen “.mp4/.mov”.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Reference / Instruction -->
+      <div class="card">
+        <div class="hd">
+          <div class="t" id="refTitle">Inspect help</div>
+        </div>
+        <div class="bd">
+          <div class="badge" style="margin-bottom:10px">
+            <span class="dot good"></span>
+            <span>GSpherical UUID: FFCC8263-F855-4A93-8814-587A02521FDD</span>
+          </div>
+
+          <div id="refBody" class="muted"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const GS_UUID = new Uint8Array([0xFF,0xCC,0x82,0x63,0xF8,0x55,0x4A,0x93,0x88,0x14,0x58,0x7A,0x02,0x52,0x1F,0xDD]);
+
+  const CONTAINERS = new Set([
+    "moov","trak","mdia","minf","stbl","edts","dinf","udta","meta","ilst",
+    "moof","traf","mfra","mvex","tref","iprp","ipco","sinf","schi","meco"
+  ]);
+
+  // --- DOM ---
+  const fileInput = document.getElementById("fileInput");
+  const refInput  = document.getElementById("refInput");
+  const drop      = document.getElementById("drop");
+
+  const fileLabel = document.getElementById("fileLabel");
+  const clearBtn  = document.getElementById("clearBtn");
+
+  const tabInspect    = document.getElementById("tabInspect");
+  const tabInject     = document.getElementById("tabInject");
+  const panelInspect  = document.getElementById("panelInspect");
+  const panelInject   = document.getElementById("panelInject");
+
+  const inspectBtn    = document.getElementById("inspectBtn");
+  const copyJsonBtn   = document.getElementById("copyJsonBtn");
+  const inspectKv     = document.getElementById("inspectKv");
+  const inspectOut    = document.getElementById("inspectOut");
+  const inspectBadge  = document.getElementById("inspectBadge");
+
+  const injectBtn     = document.getElementById("injectBtn");
+  const injectOut     = document.getElementById("injectOut");
+  const injectBadge   = document.getElementById("injectBadge");
+
+  const scanRefBtn    = document.getElementById("scanRefBtn");
+  const applyRefBtn   = document.getElementById("applyRefBtn");
+  const refSummary    = document.getElementById("refSummary");
+
+  const projectionTypeSel = document.getElementById("projectionType");
+  const stereoModeSel     = document.getElementById("stereoMode");
+  const projectionCustomField = document.getElementById("projectionCustomField");
+  const stereoCustomField     = document.getElementById("stereoCustomField");
+  const projectionCustom = document.getElementById("projectionCustom");
+  const stereoCustom     = document.getElementById("stereoCustom");
+
+  const ivh               = document.getElementById("ivh");
+  const cropModeSel       = document.getElementById("cropMode");
+  const customFields      = document.getElementById("customFields");
+  const cropHint          = document.getElementById("cropHint");
+
+  const cW = document.getElementById("cW");
+  const cH = document.getElementById("cH");
+  const fW = document.getElementById("fW");
+  const fH = document.getElementById("fH");
+  const cL = document.getElementById("cL");
+  const cT = document.getElementById("cT");
+
+  const presetVr180Btn = document.getElementById("presetVr180Btn");
+  const preset360Btn   = document.getElementById("preset360Btn");
+  const resetInjectBtn = document.getElementById("resetInjectBtn");
+
+  const refTitle = document.getElementById("refTitle");
+  const refBody  = document.getElementById("refBody");
+
+  const progressWrap  = document.getElementById("progressWrap");
+  const progressBar   = document.getElementById("progressBar");
+  const progressLabel = document.getElementById("progressLabel");
+  const progressPct   = document.getElementById("progressPct");
+
+  // --- State ---
+  let currentFile = null;
+  let lastReport  = null;
+
+  let referenceFile = null;
+  let referenceReport = null;
+
+  const LS_KEY = "3dmetafix_inject_settings_v1";
+
+  // --- UI helpers ---
+  function setTab(which){
+    const inspect = which === "inspect";
+    tabInspect.classList.toggle("active", inspect);
+    tabInject.classList.toggle("active", !inspect);
+    panelInspect.style.display = inspect ? "block" : "none";
+    panelInject.style.display  = inspect ? "none" : "block";
+    updateReferencePanel();
+  }
+
+  function setBadge(el, kind, text){
+    const dotKind = kind === "good" ? "good" : kind === "bad" ? "bad" : "warn";
+    el.innerHTML = `<span class="dot ${dotKind}"></span><span>${escapeHtml(text)}</span>`;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function fmtBytes(n){
+    const u = ["B","KB","MB","GB","TB"];
+    let i=0, x=n;
+    while(x>=1024 && i<u.length-1){ x/=1024; i++; }
+    return `${x.toFixed(i?2:0)} ${u[i]}`;
+  }
+
+  function setProgress(visible, label="", pct=0){
+    progressWrap.style.display = visible ? "grid" : "none";
+    if (!visible) return;
+    const clamped = Math.max(0, Math.min(100, pct));
+    progressLabel.textContent = label;
+    progressPct.textContent = `${Math.round(clamped)}%`;
+    progressBar.value = clamped;
+  }
+
+  function setInspectReadyUI(ready){
+    if (!ready){
+      inspectBtn.disabled = true;
+      inspectBtn.classList.remove("primary");
+      return;
+    }
+    inspectBtn.disabled = false;
+    inspectBtn.classList.add("primary"); // lit up when ready
+  }
+
+  function updateReferencePanel(){
+    const isInspect = tabInspect.classList.contains("active");
+    if (isInspect){
+      refTitle.textContent = "Inspect help";
+      if (!currentFile){
+        refBody.innerHTML = `
+          <b>How to use</b><br/>
+          1) Open or drag-and-drop an MP4/MOV<br/>
+          2) Click <b>Run inspection</b><br/><br/>
+          <b>What you’ll see</b><br/>
+          This checks for Google “GSpherical” VR/360 metadata and shows key values.`;
+      } else if (!lastReport){
+        refBody.innerHTML = `
+          <b>Ready</b><br/>
+          Click <b>Run inspection</b> to scan the file for GSpherical metadata.<br/><br/>
+          If no metadata is found, switch to <b>Inject</b> to add it without re-encoding.`;
+      } else {
+        refBody.innerHTML = renderInspectSummary(lastReport);
+      }
+    } else {
+      refTitle.textContent = "Inject help";
+      refBody.innerHTML = `
+        <b>How to use</b><br/>
+        1) Choose ProjectionType + optional StereoMode<br/>
+        2) (Optional) Use <b>Scan & Match</b> with a known-good reference file<br/>
+        3) Click <b>Inject & Download</b><br/><br/>
+        <b>Saving</b><br/>
+        If your browser supports it, you’ll be asked where to save the output file. Otherwise it downloads automatically.`;
+    }
+  }
+
+  function renderInspectSummary(report){
+    const gs = report.gspherical || {};
+    const found = !!gs.found;
+    const proj = gs.tags?.ProjectionType ?? "(none)";
+    const stereo = gs.tags?.StereoMode ?? "(none)";
+    const crop = gs.cropPresent ? "present" : "not present";
+    const st3dCount = report.extra?.st3dCount ?? 0;
+    const sv3dCount = report.extra?.sv3dCount ?? 0;
+
+    if (found){
+      return `
+        <b>Result: GSpherical metadata found</b><br/>
+        ProjectionType: <span style="font-family:var(--mono)">${escapeHtml(proj)}</span><br/>
+        StereoMode: <span style="font-family:var(--mono)">${escapeHtml(stereo)}</span><br/>
+        Crop fields: ${escapeHtml(crop)}<br/><br/>
+        <b>Extra (optional boxes)</b><br/>st3d boxes: ${st3dCount} • sv3d boxes: ${sv3dCount}<br/>
+        <span class="mini">3Dmetafix injects GSpherical only.</span>`;
+    }
+
+    return `
+      <b>Result: No GSpherical metadata found</b><br/>
+      This file may not be detected as VR/360 on some platforms.<br/><br/>
+      Next step: go to <b>Inject</b>, set values (or Match from a reference file), then Inject & Download.`;
+  }
+
+  function saveInjectSettings(){
+    const data = {
+      projectionTypeSel: projectionTypeSel.value,
+      projectionCustom: projectionCustom.value,
+      stereoModeSel: stereoModeSel.value,
+      stereoCustom: stereoCustom.value,
+      ivh: ivh.value,
+      cropMode: cropModeSel.value,
+      cW: cW.value, cH: cH.value, fW: fW.value, fH: fH.value, cL: cL.value, cT: cT.value
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }
+
+  function loadInjectSettings(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+
+      if (d.projectionTypeSel != null) projectionTypeSel.value = d.projectionTypeSel;
+      if (d.projectionCustom != null) projectionCustom.value = d.projectionCustom;
+
+      if (d.stereoModeSel != null) stereoModeSel.value = d.stereoModeSel;
+      if (d.stereoCustom != null) stereoCustom.value = d.stereoCustom;
+
+      if (d.ivh != null) ivh.value = d.ivh;
+
+      if (d.cropMode != null) cropModeSel.value = d.cropMode;
+      if (d.cW != null) cW.value = d.cW;
+      if (d.cH != null) cH.value = d.cH;
+      if (d.fW != null) fW.value = d.fW;
+      if (d.fH != null) fH.value = d.fH;
+      if (d.cL != null) cL.value = d.cL;
+      if (d.cT != null) cT.value = d.cT;
+    } catch(_){}
+    syncCustomFieldsUI();
+    syncCropFieldsUI();
+    validateCropHint();
+  }
+
+  function resetInjectSettings(){
+    projectionTypeSel.value = "half_equirectangular";
+    stereoModeSel.value = "";
+    projectionCustom.value = "";
+    stereoCustom.value = "";
+    ivh.value = "180";
+    cropModeSel.value = "none";
+    cW.value = "0"; cH.value = "0"; fW.value = "0"; fH.value = "0"; cL.value = "0"; cT.value = "0";
+    syncCustomFieldsUI();
+    syncCropFieldsUI();
+    validateCropHint();
+    saveInjectSettings();
+    injectOut.textContent = "Settings reset. Ready to inject.";
+  }
+
+  function applyPresetVr180(){
+    projectionTypeSel.value = "half_equirectangular";
+    stereoModeSel.value = "left-right";
+    ivh.value = "180";
+    cropModeSel.value = "none";
+    projectionCustom.value = "";
+    stereoCustom.value = "";
+    syncCustomFieldsUI();
+    syncCropFieldsUI();
+    validateCropHint();
+    saveInjectSettings();
+    injectOut.textContent = "Preset applied: VR180. Ready to inject.";
+  }
+
+  function applyPreset360(){
+    projectionTypeSel.value = "equirectangular";
+    stereoModeSel.value = "";
+    ivh.value = "0";
+    cropModeSel.value = "none";
+    projectionCustom.value = "";
+    stereoCustom.value = "";
+    syncCustomFieldsUI();
+    syncCropFieldsUI();
+    validateCropHint();
+    saveInjectSettings();
+    injectOut.textContent = "Preset applied: 360. Ready to inject.";
+  }
+
+  function syncCustomFieldsUI(){
+    projectionCustomField.style.display = (projectionTypeSel.value === "__custom__") ? "flex" : "none";
+    stereoCustomField.style.display = (stereoModeSel.value === "__custom__") ? "flex" : "none";
+  }
+
+  function syncCropFieldsUI(){
+    customFields.style.display = (cropModeSel.value === "custom") ? "grid" : "none";
+  }
+
+  function validateCropHint(){
+    if (cropModeSel.value !== "custom"){
+      cropHint.style.display = "none";
+      return;
+    }
+    const vals = [cW,cH,fW,fH,cL,cT].map(x => Number(x.value)||0);
+    cropHint.style.display = vals.some(v => v === 0) ? "block" : "none";
+  }
+
+  // --- Drag/drop ---
+  ["dragenter","dragover"].forEach(evt => {
+    drop.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      drop.classList.add("drag");
+    });
+  });
+  ["dragleave","drop"].forEach(evt => {
+    drop.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      drop.classList.remove("drag");
+    });
+  });
+  drop.addEventListener("drop", (e) => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) loadFile(f);
+  });
+
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files?.[0];
+    if (f) loadFile(f);
+  });
+
+  // --- Tabs ---
+  tabInspect.addEventListener("click", () => setTab("inspect"));
+  tabInject.addEventListener("click", () => setTab("inject"));
+
+  // --- Projection/Stereo custom fields ---
+  projectionTypeSel.addEventListener("change", () => { syncCustomFieldsUI(); saveInjectSettings(); });
+  stereoModeSel.addEventListener("change", () => { syncCustomFieldsUI(); saveInjectSettings(); });
+  projectionCustom.addEventListener("input", saveInjectSettings);
+  stereoCustom.addEventListener("input", saveInjectSettings);
+
+  // --- Crop fields ---
+  cropModeSel.addEventListener("change", () => { syncCropFieldsUI(); validateCropHint(); saveInjectSettings(); });
+  [cW,cH,fW,fH,cL,cT].forEach(el => el.addEventListener("input", () => { validateCropHint(); saveInjectSettings(); }));
+  ivh.addEventListener("input", saveInjectSettings);
+
+  // --- Presets / reset ---
+  presetVr180Btn.addEventListener("click", applyPresetVr180);
+  preset360Btn.addEventListener("click", applyPreset360);
+  resetInjectBtn.addEventListener("click", resetInjectSettings);
+
+  // --- Clear ---
+  clearBtn.addEventListener("click", () => {
+    currentFile = null;
+    lastReport = null;
+
+    fileInput.value = "";
+    fileLabel.textContent = "Choose an MP4/MOV file";
+
+    inspectBtn.style.display = "none";
+    copyJsonBtn.style.display = "none";
+    setInspectReadyUI(false);
+
+    setBadge(inspectBadge, "warn", "No file loaded");
+    setBadge(injectBadge,  "warn", "No file loaded");
+
+    inspectKv.innerHTML = "";
+    inspectOut.textContent = "Load a file to enable inspection.";
+
+    setProgress(false);
+    injectOut.textContent  = "Choose a file, set fields, then click “Inject & Download”.";
+    updateReferencePanel();
+  });
+
+  function loadFile(f){
+    currentFile = f;
+    lastReport = null;
+
+    fileLabel.textContent = `${f.name} • ${fmtBytes(f.size)}`;
+    setBadge(inspectBadge, "warn", "Ready to inspect");
+    setBadge(injectBadge,  "warn", "Ready to inject");
+
+    inspectBtn.style.display = "inline-flex";
+    copyJsonBtn.style.display = "none";
+
+    setInspectReadyUI(true);
+
+    inspectKv.innerHTML = "";
+    inspectOut.textContent = "Ready. Click “Run inspection”.";
+    injectOut.textContent  = "Ready. Click “Inject & Download” when you want to write GSpherical metadata.";
+
+    setProgress(false);
+    updateReferencePanel();
+  }
+
+  // --- Reference scan & match ---
+  refInput.addEventListener("change", () => {
+    const f = refInput.files?.[0];
+    if (!f) return;
+    referenceFile = f;
+    referenceReport = null;
+    applyRefBtn.disabled = true;
+    refSummary.textContent = `Reference loaded: ${f.name} • ${fmtBytes(f.size)} (click “Scan reference”)`;
+  });
+
+  scanRefBtn.addEventListener("click", async () => {
+    if (!referenceFile){
+      refSummary.textContent = "No reference loaded.";
+      return;
+    }
+    refSummary.textContent = "Scanning reference…";
+    applyRefBtn.disabled = true;
+    referenceReport = null;
+
+    try{
+      referenceReport = await inspectFile(referenceFile);
+      const tags = referenceReport.gspherical.tags || {};
+      const proj = tags.ProjectionType ?? "(none)";
+      const stereo = tags.StereoMode ?? "(none)";
+      const cropPresent = referenceReport.gspherical.cropPresent;
+
+      refSummary.textContent =
+        `Reference scanned • GSpherical=${referenceReport.gspherical.found} • ` +
+        `ProjectionType=${proj} • StereoMode=${stereo} • Crop=${cropPresent}`;
+
+      applyRefBtn.disabled = !(referenceReport.gspherical.found);
+    } catch(e){
+      refSummary.textContent = `Scan failed: ${String(e?.message || e)}`;
+    }
+  });
+
+  applyRefBtn.addEventListener("click", () => {
+    if (!referenceReport?.gspherical?.found) return;
+    const tags = referenceReport.gspherical.tags || {};
+
+    if (tags.ProjectionType){
+      const v = String(tags.ProjectionType).trim();
+      if ([...projectionTypeSel.options].some(o => o.value === v)){
+        projectionTypeSel.value = v;
+      } else {
+        projectionTypeSel.value = "__custom__";
+        projectionCustom.value = v;
+      }
+    }
+
+    if (tags.StereoMode){
+      const v = String(tags.StereoMode).trim();
+      if ([...stereoModeSel.options].some(o => o.value === v)){
+        stereoModeSel.value = v;
+      } else {
+        stereoModeSel.value = "__custom__";
+        stereoCustom.value = v;
+      }
+    } else {
+      stereoModeSel.value = "";
+      stereoCustom.value = "";
+    }
+
+    if (tags.InitialViewHeadingDegrees != null){
+      const n = Number(tags.InitialViewHeadingDegrees);
+      if (Number.isFinite(n)) ivh.value = String(Math.round(n));
+    }
+
+    const cropKeys = [
+      "CroppedAreaImageWidthPixels","CroppedAreaImageHeightPixels",
+      "FullPanoWidthPixels","FullPanoHeightPixels",
+      "CroppedAreaLeftPixels","CroppedAreaTopPixels"
+    ];
+    const hasAnyCrop = cropKeys.some(k => tags[k] != null);
+
+    if (hasAnyCrop){
+      cropModeSel.value = "custom";
+      cW.value = tags.CroppedAreaImageWidthPixels ?? cW.value;
+      cH.value = tags.CroppedAreaImageHeightPixels ?? cH.value;
+      fW.value = tags.FullPanoWidthPixels ?? fW.value;
+      fH.value = tags.FullPanoHeightPixels ?? fH.value;
+      cL.value = tags.CroppedAreaLeftPixels ?? cL.value;
+      cT.value = tags.CroppedAreaTopPixels ?? cT.value;
+    } else {
+      cropModeSel.value = "none";
+    }
+
+    syncCustomFieldsUI();
+    syncCropFieldsUI();
+    validateCropHint();
+    saveInjectSettings();
+
+    injectOut.textContent = "Matched settings from reference. Ready to inject.";
+  });
+
+  function getProjectionTypeValue(){
+    return projectionTypeSel.value === "__custom__" ? (projectionCustom.value || "").trim() : projectionTypeSel.value;
+  }
+  function getStereoModeValue(){
+    return stereoModeSel.value === "__custom__" ? (stereoCustom.value || "").trim() : stereoModeSel.value;
+  }
+
+  // --- Binary helpers ---
+  function readType(u8, off){
+    return String.fromCharCode(u8[off],u8[off+1],u8[off+2],u8[off+3]);
+  }
+  function writeType(u8, off, t){
+    u8[off]=t.charCodeAt(0); u8[off+1]=t.charCodeAt(1); u8[off+2]=t.charCodeAt(2); u8[off+3]=t.charCodeAt(3);
+  }
+  function u8eq(a,b){
+    if(a.length!==b.length) return false;
+    for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return false;
+    return true;
+  }
+  function utf8Decode(u8){
+    return new TextDecoder("utf-8",{fatal:false}).decode(u8);
+  }
+  function utf8Encode(s){
+    return new TextEncoder().encode(s);
+  }
+  async function readAt(file, start, len){
+    const ab = await file.slice(start, start+len).arrayBuffer();
+    return new Uint8Array(ab);
+  }
+
+  async function scanTopLevel(file){
+    const boxes = [];
+    let off = 0;
+
+    while(off + 8 <= file.size){
+      const head = await readAt(file, off, 16);
+      if (head.length < 8) break;
+
+      const dv = new DataView(head.buffer, head.byteOffset, head.byteLength);
+      let size = dv.getUint32(0,false);
+      const type = readType(head, 4);
+      let headerSize = 8;
+
+      if (size === 1){
+        if (head.length < 16) throw new Error("Invalid box header (needs 64-bit size).");
+        const big = dv.getBigUint64(8,false);
+        size = Number(big);
+        headerSize = 16;
+      } else if (size === 0){
+        size = file.size - off;
+      }
+
+      if (size < headerSize) throw new Error(`Invalid box size for ${type}: ${size}`);
+
+      boxes.push({ type, start: off, size, headerSize, end: off + size });
+      off += size;
+
+      if (boxes.length > 5000) throw new Error("Too many top-level boxes; file may be malformed.");
+    }
+    return boxes;
+  }
+
+  function parseBoxes(bufU8, start, end, depth=0){
+    const boxes = [];
+    const dv = new DataView(bufU8.buffer, bufU8.byteOffset, bufU8.byteLength);
+    let off = start;
+
+    while(off + 8 <= end){
+      let size = dv.getUint32(off,false);
+      const type = readType(bufU8, off+4);
+      let headerSize = 8;
+
+      if (size === 1){
+        if (off + 16 > end) break;
+        const big = dv.getBigUint64(off+8,false);
+        size = Number(big);
+        headerSize = 16;
+      } else if (size === 0){
+        size = end - off;
+      }
+
+      if (!size || size < headerSize || off + size > end) break;
+
+      const box = {
+        type,
+        start: off,
+        size,
+        headerSize,
+        contentStart: off + headerSize,
+        contentEnd: off + size,
+        depth,
+        children: null
+      };
+
+      if (CONTAINERS.has(type)){
+        box.children = parseBoxes(bufU8, box.contentStart, box.contentEnd, depth+1);
+      }
+      boxes.push(box);
+      off += size;
+    }
+    return boxes;
+  }
+
+  function findFirst(boxes, type){
+    for (const b of boxes){
+      if (b.type === type) return b;
+      if (b.children){
+        const x = findFirst(b.children, type);
+        if (x) return x;
+      }
+    }
+    return null;
+  }
+
+  function findAll(boxes, type, out=[]){
+    for (const b of boxes){
+      if (b.type === type) out.push(b);
+      if (b.children) findAll(b.children, type, out);
+    }
+    return out;
+  }
+
+  function getHandlerType(trakBox, moovU8){
+    const mdia = trakBox.children?.find(x => x.type === "mdia");
+    if (!mdia) return null;
+    const hdlr = findFirst(mdia.children || [], "hdlr");
+    if (!hdlr) return null;
+
+    const off = hdlr.contentStart + 8;
+    if (off + 4 > hdlr.contentEnd) return null;
+    return readType(moovU8, off);
+  }
+
+  function parseGsphericalXml(xml){
+    const tags = {};
+    const re = /<GSpherical:([A-Za-z0-9_]+)>([\s\S]*?)<\/GSpherical:\1>/g;
+    let m;
+    while((m = re.exec(xml)) !== null){
+      tags[m[1]] = m[2].trim();
+    }
+    return tags;
+  }
+
+  function buildGsphericalXml({stereoMode, projectionType, initialViewHeadingDegrees, crop}){
+    const parts = [];
+    parts.push(`<?xml version="1.0"?>`);
+    parts.push(`<rdf:SphericalVideo`);
+    parts.push(`xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"`);
+    parts.push(`xmlns:GSpherical="http://ns.google.com/videos/1.0/spherical/">`);
+    parts.push(`<GSpherical:Spherical>true</GSpherical:Spherical>`);
+    parts.push(`<GSpherical:Stitched>true</GSpherical:Stitched>`);
+    parts.push(`<GSpherical:StitchingSoftware>3Dmetafix</GSpherical:StitchingSoftware>`);
+    parts.push(`<GSpherical:ProjectionType>${projectionType}</GSpherical:ProjectionType>`);
+
+    if (Number.isFinite(initialViewHeadingDegrees)){
+      parts.push(`<GSpherical:InitialViewHeadingDegrees>${Math.round(initialViewHeadingDegrees)}</GSpherical:InitialViewHeadingDegrees>`);
+    }
+    if (stereoMode){
+      parts.push(`<GSpherical:StereoMode>${stereoMode}</GSpherical:StereoMode>`);
+    }
+    if (crop){
+      parts.push(`<GSpherical:CroppedAreaImageWidthPixels>${crop.cW}</GSpherical:CroppedAreaImageWidthPixels>`);
+      parts.push(`<GSpherical:CroppedAreaImageHeightPixels>${crop.cH}</GSpherical:CroppedAreaImageHeightPixels>`);
+      parts.push(`<GSpherical:FullPanoWidthPixels>${crop.fW}</GSpherical:FullPanoWidthPixels>`);
+      parts.push(`<GSpherical:FullPanoHeightPixels>${crop.fH}</GSpherical:FullPanoHeightPixels>`);
+      parts.push(`<GSpherical:CroppedAreaLeftPixels>${crop.cL}</GSpherical:CroppedAreaLeftPixels>`);
+      parts.push(`<GSpherical:CroppedAreaTopPixels>${crop.cT}</GSpherical:CroppedAreaTopPixels>`);
+    }
+    parts.push(`</rdf:SphericalVideo>`);
+    return parts.join("");
+  }
+
+  function buildUuidBox(xml){
+    const payload = utf8Encode(xml);
+    const size = 8 + 16 + payload.length;
+    const ab = new ArrayBuffer(size);
+    const u8 = new Uint8Array(ab);
+    const dv = new DataView(ab);
+    dv.setUint32(0, size, false);
+    writeType(u8, 4, "uuid");
+    u8.set(GS_UUID, 8);
+    u8.set(payload, 24);
+    return u8;
+  }
+
+  function patchChunkOffsetsInMoov(moovU8, delta){
+    if (!delta) return;
+    const boxes = parseBoxes(moovU8, 0, moovU8.length, 0);
+    const stcos = findAll(boxes, "stco");
+    const co64s = findAll(boxes, "co64");
+    const dv = new DataView(moovU8.buffer, moovU8.byteOffset, moovU8.byteLength);
+
+    for (const b of stcos){
+      const base = b.contentStart;
+      if (base + 8 > b.contentEnd) continue;
+      const count = dv.getUint32(base + 4, false);
+      let p = base + 8;
+      for (let i=0;i<count;i++){
+        if (p + 4 > b.contentEnd) break;
+        const v = dv.getUint32(p, false);
+        dv.setUint32(p, v + delta, false);
+        p += 4;
+      }
+    }
+
+    for (const b of co64s){
+      const base = b.contentStart;
+      if (base + 8 > b.contentEnd) continue;
+      const count = dv.getUint32(base + 4, false);
+      let p = base + 8;
+      for (let i=0;i<count;i++){
+        if (p + 8 > b.contentEnd) break;
+        const v = dv.getBigUint64(p, false);
+        dv.setBigUint64(p, v + BigInt(delta), false);
+        p += 8;
+      }
+    }
+  }
+
+  function rebuildMoovWithInjectedUuid(moovU8, xml){
+    const tree = parseBoxes(moovU8, 0, moovU8.length, 0);
+    const moov = tree.find(b => b.type === "moov");
+    if (!moov) throw new Error("moov box not found in buffer.");
+
+    const uuidBox = buildUuidBox(xml);
+    const moovChildren = moov.children || [];
+    const trakBoxes = moovChildren.filter(b => b.type === "trak");
+
+    const replacements = new Map();
+    let injectedTrackCount = 0;
+
+    for (const trak of trakBoxes){
+      const handler = getHandlerType(trak, moovU8);
+      if (handler !== "vide") continue;
+
+      const newChildren = [];
+      for (const ch of (trak.children || [])){
+        if (ch.type === "uuid"){
+          const userTypeStart = ch.contentStart;
+          const userTypeEnd = userTypeStart + 16;
+          if (userTypeEnd <= ch.contentEnd){
+            const userType = moovU8.slice(userTypeStart, userTypeEnd);
+            if (u8eq(userType, GS_UUID)){
+              continue;
+            }
+          }
+        }
+        newChildren.push(moovU8.slice(ch.start, ch.start + ch.size));
+      }
+
+      newChildren.push(uuidBox);
+
+      const newSize = 8 + newChildren.reduce((s,p)=>s+p.length,0);
+      const newTrak = new Uint8Array(newSize);
+      const dv = new DataView(newTrak.buffer);
+      dv.setUint32(0, newSize, false);
+      writeType(newTrak, 4, "trak");
+      let w = 8;
+      for (const p of newChildren){
+        newTrak.set(p, w);
+        w += p.length;
+      }
+
+      replacements.set(trak.start, newTrak);
+      injectedTrackCount++;
+    }
+
+    const rebuiltMoovChildren = [];
+    for (const ch of moovChildren){
+      const rep = replacements.get(ch.start);
+      if (rep) rebuiltMoovChildren.push(rep);
+      else rebuiltMoovChildren.push(moovU8.slice(ch.start, ch.start + ch.size));
+    }
+
+    const newMoovSize = 8 + rebuiltMoovChildren.reduce((s,p)=>s+p.length,0);
+    const newMoov = new Uint8Array(newMoovSize);
+    const moovDv = new DataView(newMoov.buffer);
+    moovDv.setUint32(0, newMoovSize, false);
+    writeType(newMoov, 4, "moov");
+    let ww = 8;
+    for (const p of rebuiltMoovChildren){
+      newMoov.set(p, ww);
+      ww += p.length;
+    }
+
+    return { newMoov, injectedTrackCount, oldMoovSize: moov.size };
+  }
+
+  async function inspectFile(file){
+    const top = await scanTopLevel(file);
+    const moovTop = top.find(b => b.type === "moov") || null;
+    const mdatTop = top.find(b => b.type === "mdat") || null;
+    if (!moovTop) throw new Error("Top-level moov box not found.");
+
+    const moovBuf = await file.slice(moovTop.start, moovTop.end).arrayBuffer();
+    const moovU8 = new Uint8Array(moovBuf);
+
+    const tree = parseBoxes(moovU8, 0, moovU8.length, 0);
+    const moovNode = tree.find(b => b.type === "moov");
+    const traks = (moovNode?.children || []).filter(b => b.type === "trak");
+
+    let videoTracks = 0;
+    let found = false;
+    let foundXml = "";
+    let tags = {};
+    let cropPresent = false;
+
+    const st3dCount = findAll(tree, "st3d").length;
+    const sv3dCount = findAll(tree, "sv3d").length;
+
+    for (const trak of traks){
+      const handler = getHandlerType(trak, moovU8);
+      if (handler === "vide") videoTracks++;
+      if (handler !== "vide") continue;
+
+      for (const ch of (trak.children || [])){
+        if (ch.type !== "uuid") continue;
+        const userTypeStart = ch.contentStart;
+        const userTypeEnd = userTypeStart + 16;
+        if (userTypeEnd > ch.contentEnd) continue;
+        const userType = moovU8.slice(userTypeStart, userTypeEnd);
+        if (!u8eq(userType, GS_UUID)) continue;
+
+        found = true;
+        const payload = moovU8.slice(userTypeEnd, ch.contentEnd);
+        foundXml = utf8Decode(payload);
+        tags = parseGsphericalXml(foundXml);
+        cropPresent = (
+          "CroppedAreaImageWidthPixels" in tags ||
+          "FullPanoWidthPixels" in tags ||
+          "CroppedAreaLeftPixels" in tags
+        );
+        break;
+      }
+      if (found) break;
+    }
+
+    if (!found){
+      const allUuids = findAll(tree, "uuid");
+      for (const u of allUuids){
+        const userTypeStart = u.contentStart;
+        const userTypeEnd = userTypeStart + 16;
+        if (userTypeEnd > u.contentEnd) continue;
+        const userType = moovU8.slice(userTypeStart, userTypeEnd);
+        if (!u8eq(userType, GS_UUID)) continue;
+
+        found = true;
+        const payload = moovU8.slice(userTypeEnd, u.contentEnd);
+        foundXml = utf8Decode(payload);
+        tags = parseGsphericalXml(foundXml);
+        cropPresent = (
+          "CroppedAreaImageWidthPixels" in tags ||
+          "FullPanoWidthPixels" in tags ||
+          "CroppedAreaLeftPixels" in tags
+        );
+        break;
+      }
+    }
+
+    return {
+      fileName: file.name,
+      fileSize: file.size,
+      topLevel: top,
+      moov: moovTop,
+      mdat: mdatTop,
+      videoTracks,
+      gspherical: { found, xml: foundXml, tags, cropPresent },
+      extra: { st3dCount, sv3dCount }
+    };
+  }
+
+  function fillInspectKv(report){
+    const topStr = report.topLevel.map(b => `${b.type} (${fmtBytes(b.size)})`).join(", ");
+    const moovBeforeMdat = (report.moov && report.mdat) ? (report.moov.start < report.mdat.start) : null;
+
+    const entries = [
+      ["File", report.fileName],
+      ["File size", fmtBytes(report.fileSize)],
+      ["Top-level boxes", topStr],
+      ["moov before mdat", (moovBeforeMdat == null) ? "n/a" : String(moovBeforeMdat)],
+      ["Video tracks", String(report.videoTracks)],
+      ["GSpherical UUID found", String(report.gspherical.found)],
+      ["ProjectionType", report.gspherical.tags.ProjectionType ?? "(none)"],
+      ["StereoMode", report.gspherical.tags.StereoMode ?? "(none)"],
+      ["Crop present", report.gspherical.cropPresent ? "true" : "false"],
+      ["st3d boxes", String(report.extra?.st3dCount ?? 0)],
+      ["sv3d boxes", String(report.extra?.sv3dCount ?? 0)]
+    ];
+
+    inspectKv.innerHTML = entries
+      .map(([k,v]) => `<div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div>`)
+      .join("");
+  }
+
+  // --- Inspect action ---
+  inspectBtn.addEventListener("click", async () => {
+    if (!currentFile){
+      setBadge(inspectBadge, "warn", "No file loaded");
+      return;
+    }
+
+    setInspectReadyUI(false);
+    setBadge(inspectBadge, "warn", "Inspecting…");
+    inspectKv.innerHTML = "";
+    inspectOut.textContent = "Scanning…";
+    copyJsonBtn.style.display = "none";
+    updateReferencePanel();
+
+    try{
+      const report = await inspectFile(currentFile);
+      lastReport = report;
+
+      fillInspectKv(report);
+
+      if (report.gspherical.found){
+        setBadge(inspectBadge, "good", "GSpherical metadata found");
+        inspectOut.textContent = "GSpherical XML found:\n\n" + report.gspherical.xml;
+      } else {
+        setBadge(inspectBadge, "bad", "No GSpherical metadata found");
+        inspectOut.textContent =
+          "No GSpherical uuid box was found.\n\n" +
+          "Go to the Inject tab to add GSpherical metadata without re-encoding.\n";
+      }
+
+      copyJsonBtn.style.display = "inline-flex";
+      setInspectReadyUI(true);
+      updateReferencePanel();
+
+    } catch(err){
+      setBadge(inspectBadge, "bad", "Inspection failed");
+      inspectOut.textContent = String(err?.message || err);
+      setInspectReadyUI(true);
+      updateReferencePanel();
+    }
+  });
+
+  copyJsonBtn.addEventListener("click", async () => {
+    if (!lastReport){
+      inspectOut.textContent = "No report to copy yet — run inspection first.";
+      return;
+    }
+    const json = JSON.stringify(lastReport, null, 2);
+    await navigator.clipboard.writeText(json);
+    inspectOut.textContent = "Copied report JSON to clipboard.\n\n" + json;
+  });
+
+  // --- Save helpers (progress + save-as when possible) ---
+  async function writeBlobToWritable(blob, writable, onProgress){
+    const total = blob.size;
+    let written = 0;
+
+    const reader = blob.stream().getReader();
+    const writer = writable.getWriter ? writable.getWriter() : null;
+
+    const writeChunk = async (chunk) => {
+      if (writer) return writer.write(chunk);
+      return writable.write(chunk);
+    };
+
+    const closeWriter = async () => {
+      if (writer) await writer.close();
+    };
+
+    let lastUi = 0;
+    try{
+      while(true){
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value){
+          await writeChunk(value);
+          written += value.byteLength;
+
+          const now = performance.now();
+          if (now - lastUi > 80){
+            lastUi = now;
+            onProgress?.(written, total);
+          }
+        }
+      }
+      onProgress?.(written, total);
+      await closeWriter();
+    } finally {
+      reader.releaseLock?.();
+    }
+  }
+
+  async function saveBlobWithPicker(blob, suggestedName, onProgress){
+    if (!("showSaveFilePicker" in window)) return false;
+
+    const handle = await window.showSaveFilePicker({
+      suggestedName,
+      types: [{
+        description: "Video file",
+        accept: { "video/mp4": [".mp4"], "video/quicktime": [".mov"] }
+      }]
+    });
+
+    const writable = await handle.createWritable();
+    try{
+      await writeBlobToWritable(blob, writable, onProgress);
+      await writable.close();
+      return true;
+    } catch(e){
+      try{ await writable.abort(); } catch(_){}
+      throw e;
+    }
+  }
+
+  function triggerDownload(blob, outName){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = outName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function setInjectLog(lines){
+    injectOut.textContent = lines.join("\n");
+  }
+
+  // --- Inject action ---
+  injectBtn.addEventListener("click", async () => {
+    if (!currentFile){
+      setBadge(injectBadge, "warn", "No file loaded");
+      return;
+    }
+
+    setBadge(injectBadge, "warn", "Injecting…");
+    setProgress(true, "Preparing…", 0);
+
+    const log = [];
+    log.push("Inject started.");
+    log.push("- Reading file structure…");
+    setInjectLog(log);
+
+    try{
+      const report = await inspectFile(currentFile);
+      const moov = report.moov;
+      const mdat = report.mdat;
+      if (!moov) throw new Error("Top-level moov box not found.");
+
+      const projectionType = (getProjectionTypeValue() || "").trim();
+      const stereoMode = (getStereoModeValue() || "").trim() || null;
+      const heading = Number(ivh.value);
+
+      if (!projectionType){
+        throw new Error("ProjectionType is required.");
+      }
+
+      let crop = null;
+      if (cropModeSel.value === "custom"){
+        crop = {
+          cW: Number(cW.value)||0, cH: Number(cH.value)||0,
+          fW: Number(fW.value)||0, fH: Number(fH.value)||0,
+          cL: Number(cL.value)||0, cT: Number(cT.value)||0
+        };
+      }
+
+      log[1] = "- Reading file structure… done";
+      log.push("- Building GSpherical metadata…");
+      setInjectLog(log);
+
+      const xml = buildGsphericalXml({
+        stereoMode,
+        projectionType,
+        initialViewHeadingDegrees: heading,
+        crop
+      });
+
+      log[2] = "- Building GSpherical metadata… done";
+      log.push("- Updating moov (video track metadata)…");
+      setInjectLog(log);
+
+      setProgress(true, "Reading moov…", 5);
+      const moovBuf = await currentFile.slice(moov.start, moov.end).arrayBuffer();
+      const moovU8 = new Uint8Array(moovBuf);
+
+      const { newMoov, injectedTrackCount, oldMoovSize } = rebuildMoovWithInjectedUuid(moovU8, xml);
+      if (!injectedTrackCount) throw new Error("No video track found (no trak with handler_type = vide).");
+
+      const moovBeforeMdat = (moov && mdat) ? (moov.start < mdat.start) : false;
+      const delta = newMoov.length - oldMoovSize;
+
+      if (moovBeforeMdat && delta !== 0){
+        log[3] = "- Updating moov (video track metadata)… done";
+        log.push("- Patching chunk offsets…");
+        setInjectLog(log);
+        patchChunkOffsetsInMoov(newMoov, delta);
+        log[4] = "- Patching chunk offsets… done";
+      } else {
+        log[3] = "- Updating moov (video track metadata)… done";
+      }
+
+      const before = currentFile.slice(0, moov.start);
+      const after  = currentFile.slice(moov.end, currentFile.size);
+      const outBlob = new Blob([before, newMoov, after], { type: "video/mp4" });
+
+      const base = currentFile.name.replace(/\.(mp4|mov)$/i, "");
+      const ext = (currentFile.name.match(/\.(mp4|mov)$/i)?.[0]) || ".mp4";
+      const outName = `${base}_gspherical${ext}`;
+
+      log.push("- Downloading…");
+      setInjectLog(log);
+
+      setBadge(injectBadge, "warn", "Saving…");
+      setProgress(true, "Saving…", 10);
+
+      const onProgress = (written, total) => {
+        const pct = total ? (written / total) * 100 : 0;
+        setProgress(true, `Saving… ${fmtBytes(written)} / ${fmtBytes(total)}`, pct);
+      };
+
+      let savedWithPicker = false;
+      try{
+        savedWithPicker = await saveBlobWithPicker(outBlob, outName, onProgress);
+      } catch(e){
+        if (String(e?.name || "").includes("AbortError") || String(e?.message || "").includes("aborted")){
+          setBadge(injectBadge, "warn", "Save cancelled");
+          setInjectLog(["Save cancelled."]);
+          setProgress(false);
+          return;
+        }
+        throw e;
+      }
+
+      if (!savedWithPicker){
+        setProgress(true, "Starting download…", 100);
+        triggerDownload(outBlob, outName);
+      }
+
+      setProgress(false);
+      setBadge(injectBadge, "good", "Complete");
+      log[log.length - 1] = "- Complete.";
+      log.push("");
+      log.push(`Summary: ProjectionType=${projectionType}, StereoMode=${stereoMode || "(none)"}, Crop=${crop ? "yes" : "no"}`);
+      log.push(`Injected into ${injectedTrackCount} video track(s).`);
+      setInjectLog(log);
+
+      saveInjectSettings();
+
+    } catch(err){
+      setBadge(injectBadge, "bad", "Injection failed");
+      setProgress(false);
+      setInjectLog([String(err?.message || err)]);
+    }
+  });
+
+  // --- Init ---
+  setTab("inspect");
+  setBadge(inspectBadge, "warn", "No file loaded");
+  setBadge(injectBadge,  "warn", "No file loaded");
+
+  syncCustomFieldsUI();
+  syncCropFieldsUI();
+  validateCropHint();
+  loadInjectSettings();
+
+  inspectBtn.style.display = "none";
+  setInspectReadyUI(false);
+  updateReferencePanel();
+})();
+</script>
+</body>
+</html>
